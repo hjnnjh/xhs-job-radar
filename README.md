@@ -2,6 +2,17 @@
 
 自动从小红书采集招聘信息，每日推送到 Telegram。基于 [OpenClaw](https://openclaw.ai) AI 消息网关 + [xiaohongshu-mcp](https://github.com/ptp-build/xiaohongshu-mcp) 实现全自动运行。
 
+## 效果展示
+
+<p align="center">
+  <img src="images/daily-push.png" width="350" alt="日报推送效果" />
+  &nbsp;&nbsp;
+  <img src="images/collect-notify.png" width="350" alt="采集通知效果" />
+</p>
+<p align="center">
+  <em>左：每日招聘日报推送 &nbsp;|&nbsp; 右：自动采集通知</em>
+</p>
+
 ## 工作原理
 
 ```
