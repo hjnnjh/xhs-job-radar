@@ -79,6 +79,15 @@ xhs-job-radar/
 ```
 请帮我安装 xhs-job-radar（小红书招聘雷达）技能。按以下步骤执行：
 
+0. 检查前置依赖（如缺少则先安装）：
+   - OpenClaw：运行 `openclaw --version` 确认已安装。如未安装，参考 https://docs.openclaw.ai 安装。
+   - xiaohongshu-mcp：运行 `mcporter call 'xiaohongshu-mcp.search_feeds(keyword: "测试")'` 确认可用。
+     如未安装，参考 https://github.com/ptp-build/xiaohongshu-mcp 部署 MCP 服务，
+     并通过 MCPorter 注册：`mcporter add xiaohongshu-mcp --url http://127.0.0.1:18060`。
+   - Python 3.8+：运行 `python3 --version` 确认。
+   - Telegram 频道：确认 OpenClaw 已配置 Telegram 频道并正常连接（`openclaw channels status`）。
+   如果以上依赖都已就绪，继续下一步。
+
 1. 克隆仓库：
    git clone https://github.com/hjnnjh/xhs-job-radar.git /tmp/xhs-job-radar
 
