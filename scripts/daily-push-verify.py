@@ -11,7 +11,7 @@ import re
 
 BASE_DIR = os.path.expanduser("~/.openclaw/workspace/xhs-jobs")
 CRON_RUNS_DIR = os.path.expanduser("~/.openclaw/cron/runs")
-PUSH_JOB_ID = "9ff53814-a4c6-4cef-8aa8-95b0104c2d07"
+PUSH_JOB_ID = "YOUR_DAILY_PUSH_JOB_ID"  # 部署后替换为实际的 xhs-job-daily-push Job ID
 NOTE_ID_RE = re.compile(r"^[a-f0-9]{24}$")
 
 

@@ -72,7 +72,45 @@ xhs-job-radar/
     └── data-sample.md     # data.md 示例格式
 ```
 
-## 安装部署
+## 一键安装（Agent Prompt）
+
+如果你使用 OpenClaw 或其他 LLM Agent，可以直接发送以下 prompt 让 Agent 自动完成部署：
+
+```
+请帮我安装 xhs-job-radar（小红书招聘雷达）技能。按以下步骤执行：
+
+1. 克隆仓库：
+   git clone https://github.com/hjnnjh/xhs-job-radar.git /tmp/xhs-job-radar
+
+2. 复制脚本到 OpenClaw Skills 目录：
+   mkdir -p ~/.openclaw/skills/xhs-job-helper
+   cp /tmp/xhs-job-radar/scripts/*.py ~/.openclaw/skills/xhs-job-helper/
+   cp /tmp/xhs-job-radar/SKILL.md ~/.openclaw/skills/xhs-job-helper/
+   chmod +x ~/.openclaw/skills/xhs-job-helper/*.py
+
+3. 初始化工作目录：
+   mkdir -p ~/.openclaw/workspace/xhs-jobs
+   echo "# 已采集笔记 ID" > ~/.openclaw/workspace/xhs-jobs/seen-ids.md
+   echo "# 已推送笔记 ID" > ~/.openclaw/workspace/xhs-jobs/seen-pushed-ids.md
+
+4. 读取 /tmp/xhs-job-radar/prompts/ 下的三个 prompt 文件（collect.md、daily-push.md、push-verify.md），然后在 ~/.openclaw/cron/jobs.json 中创建三个 cron job：
+   - xhs-job-collect: schedule "0 7,13,19 * * *", delivery announce -> telegram, lightContext true
+   - xhs-job-daily-push: schedule "0 9 * * *", delivery announce -> telegram, lightContext true
+   - xhs-job-push-verify: schedule "5 9 * * *", delivery silent -> telegram, lightContext true
+   注意：编辑 jobs.json 前需停止 Gateway，编辑后重启。
+
+5. 记录 xhs-job-daily-push 的 Job ID，然后修改 ~/.openclaw/skills/xhs-job-helper/daily-push-verify.py 中的 PUSH_JOB_ID 为该 ID。
+
+6. 验证安装：
+   python3 ~/.openclaw/skills/xhs-job-helper/collect-search.py
+   确认输出 JSON 格式的搜索结果。
+
+7. 清理：rm -rf /tmp/xhs-job-radar
+
+安装完成后告诉我结果。
+```
+
+## 安装部署（手动）
 
 ### 1. 安装 Skill
 
