@@ -60,7 +60,7 @@ graph TD
 |------|------|
 | [OpenClaw](https://openclaw.ai) | AI 消息网关，提供 Cron、Agent、消息投递能力（支持 Telegram / Discord / WhatsApp 等） |
 | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) | 小红书 MCP 服务端（Go + go-rod） |
-| [MCPorter](https://docs.openclaw.ai/mcporter) | MCP 协议桥接 CLI，Agent 通过它调用 xiaohongshu-mcp |
+| [MCPorter](https://github.com/steipete/mcporter) | MCP 协议桥接 CLI，Agent 通过它调用 xiaohongshu-mcp |
 | Python 3.8+ | 脚本运行环境 |
 
 ### xiaohongshu-mcp 配置说明
