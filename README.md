@@ -1,6 +1,6 @@
 # XHS Job Radar - 小红书招聘雷达
 
-自动从小红书采集招聘信息，每日推送到 Telegram。基于 [OpenClaw](https://openclaw.ai) AI 消息网关 + [xiaohongshu-mcp](https://github.com/ptp-build/xiaohongshu-mcp) 实现全自动运行。
+自动从小红书采集招聘信息，每日推送到 Telegram。基于 [OpenClaw](https://openclaw.ai) AI 消息网关 + [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) 实现全自动运行。
 
 ## 效果展示
 
@@ -58,10 +58,18 @@ graph TD
 
 | 组件 | 说明 |
 |------|------|
-| [OpenClaw](https://openclaw.ai) | AI 消息网关，提供 Cron、Agent、Telegram 投递能力 |
-| [xiaohongshu-mcp](https://github.com/ptp-build/xiaohongshu-mcp) | 小红书 MCP 服务端（Go + go-rod） |
+| [OpenClaw](https://openclaw.ai) | AI 消息网关，提供 Cron、Agent、消息投递能力（支持 Telegram / Discord / WhatsApp 等） |
+| [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) | 小红书 MCP 服务端（Go + go-rod） |
 | [MCPorter](https://docs.openclaw.ai/mcporter) | MCP 协议桥接 CLI，Agent 通过它调用 xiaohongshu-mcp |
 | Python 3.8+ | 脚本运行环境 |
+
+### xiaohongshu-mcp 配置说明
+
+xiaohongshu-mcp 依赖 Playwright 进行浏览器自动化操作。推荐的配置方式：
+
+1. 先安装 [Playwright MCP](https://github.com/anthropics/mcp-playwright)
+2. 参考 [xiaohongshu-mcp 仓库](https://github.com/xpzouying/xiaohongshu-mcp) 的 README 进行部署
+3. 或者直接让 LLM Agent（如 Claude Code）帮你完成配置——将上述仓库地址发给 Agent，它会自动完成构建、运行和 MCPorter 注册
 
 ## 目录结构
 
@@ -93,39 +101,45 @@ xhs-job-radar/
 0. 检查前置依赖（如缺少则先安装）：
    - OpenClaw：运行 `openclaw --version` 确认已安装。如未安装，参考 https://docs.openclaw.ai 安装。
    - xiaohongshu-mcp：运行 `mcporter call 'xiaohongshu-mcp.search_feeds(keyword: "测试")'` 确认可用。
-     如未安装，参考 https://github.com/ptp-build/xiaohongshu-mcp 部署 MCP 服务，
+     如未安装，参考 https://github.com/xpzouying/xiaohongshu-mcp 部署 MCP 服务，
      并通过 MCPorter 注册：`mcporter add xiaohongshu-mcp --url http://127.0.0.1:18060`。
    - Python 3.8+：运行 `python3 --version` 确认。
-   - Telegram 频道：确认 OpenClaw 已配置 Telegram 频道并正常连接（`openclaw channels status`）。
+   - 消息频道：运行 `openclaw channels status` 确认至少有一个频道已连接。
+     支持的频道：Telegram、Discord、WhatsApp 等 OpenClaw 支持的所有平台。
    如果以上依赖都已就绪，继续下一步。
 
-1. 克隆仓库：
+1. 确认推送渠道：
+   询问用户希望将采集结果推送到哪个频道（telegram / discord / whatsapp 等），
+   以及接收消息的用户/频道 ID（可通过 `openclaw channels status --probe` 查看）。
+   如果用户未指定，默认使用 telegram。以下步骤中用 CHANNEL 和 TO_ID 代替实际值。
+
+2. 克隆仓库：
    git clone https://github.com/hjnnjh/xhs-job-radar.git /tmp/xhs-job-radar
 
-2. 复制脚本到 OpenClaw Skills 目录：
+3. 复制脚本到 OpenClaw Skills 目录：
    mkdir -p ~/.openclaw/skills/xhs-job-helper
    cp /tmp/xhs-job-radar/scripts/*.py ~/.openclaw/skills/xhs-job-helper/
    cp /tmp/xhs-job-radar/SKILL.md ~/.openclaw/skills/xhs-job-helper/
    chmod +x ~/.openclaw/skills/xhs-job-helper/*.py
 
-3. 初始化工作目录：
+4. 初始化工作目录：
    mkdir -p ~/.openclaw/workspace/xhs-jobs
    echo "# 已采集笔记 ID" > ~/.openclaw/workspace/xhs-jobs/seen-ids.md
    echo "# 已推送笔记 ID" > ~/.openclaw/workspace/xhs-jobs/seen-pushed-ids.md
 
-4. 读取 /tmp/xhs-job-radar/prompts/ 下的三个 prompt 文件（collect.md、daily-push.md、push-verify.md），然后在 ~/.openclaw/cron/jobs.json 中创建三个 cron job：
-   - xhs-job-collect: schedule "0 7,13,19 * * *", delivery announce -> telegram, lightContext true
-   - xhs-job-daily-push: schedule "0 9 * * *", delivery announce -> telegram, lightContext true
-   - xhs-job-push-verify: schedule "5 9 * * *", delivery silent -> telegram, lightContext true
-   注意：编辑 jobs.json 前需停止 Gateway，编辑后重启。
+5. 读取 /tmp/xhs-job-radar/prompts/ 下的三个 prompt 文件（collect.md、daily-push.md、push-verify.md），然后在 ~/.openclaw/cron/jobs.json 中创建三个 cron job：
+   - xhs-job-collect: schedule "0 7,13,19 * * *", delivery announce -> CHANNEL (to: TO_ID), lightContext true
+   - xhs-job-daily-push: schedule "0 9 * * *", delivery announce -> CHANNEL (to: TO_ID), lightContext true
+   - xhs-job-push-verify: schedule "5 9 * * *", delivery silent -> CHANNEL (to: TO_ID), lightContext true
+   注意：将 CHANNEL 和 TO_ID 替换为步骤 1 中确认的实际值。编辑 jobs.json 前需停止 Gateway，编辑后重启。
 
-5. 记录 xhs-job-daily-push 的 Job ID，然后修改 ~/.openclaw/skills/xhs-job-helper/daily-push-verify.py 中的 PUSH_JOB_ID 为该 ID。
+6. 记录 xhs-job-daily-push 的 Job ID，然后修改 ~/.openclaw/skills/xhs-job-helper/daily-push-verify.py 中的 PUSH_JOB_ID 为该 ID。
 
-6. 验证安装：
+7. 验证安装：
    python3 ~/.openclaw/skills/xhs-job-helper/collect-search.py
    确认输出 JSON 格式的搜索结果。
 
-7. 清理：rm -rf /tmp/xhs-job-radar
+8. 清理：rm -rf /tmp/xhs-job-radar
 
 安装完成后告诉我结果。
 ```
