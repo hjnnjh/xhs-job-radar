@@ -65,10 +65,10 @@ graph TD
 
 ### xiaohongshu-mcp 配置说明
 
-xiaohongshu-mcp 依赖 Playwright 进行浏览器自动化操作。推荐的配置方式：
+xiaohongshu-mcp 需要小红书账号的 Cookie 才能正常工作。推荐的配置方式：
 
-1. 先安装 [Playwright MCP](https://github.com/anthropics/mcp-playwright)
-2. 参考 [xiaohongshu-mcp 仓库](https://github.com/xpzouying/xiaohongshu-mcp) 的 README 进行部署
+1. **获取 Cookie**：在本地安装 [Playwright MCP](https://github.com/anthropics/mcp-playwright)，通过浏览器自动化登录小红书并导出 `cookies.json`
+2. **部署 MCP 服务**：参考 [xiaohongshu-mcp 仓库](https://github.com/xpzouying/xiaohongshu-mcp) 的 README 在服务器上部署，并将 `cookies.json` 放入对应目录
 3. 或者直接让 LLM Agent（如 Claude Code）帮你完成配置——将上述仓库地址发给 Agent，它会自动完成构建、运行和 MCPorter 注册
 
 ## 目录结构
