@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/banner.png" alt="XHS Job Radar Banner" width="800">
+</p>
+
 # XHS Job Radar - 小红书招聘雷达
 
 自动从小红书采集招聘信息，每日推送到 Telegram。基于 [OpenClaw](https://openclaw.ai) AI 消息网关 + [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) 实现全自动运行。
