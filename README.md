@@ -4,7 +4,7 @@
 
 # XHS Job Radar - 小红书招聘雷达
 
-自动从小红书采集招聘信息，每日推送到 Telegram。基于 [OpenClaw](https://openclaw.ai) AI 消息网关 + [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) 实现全自动运行。
+自动从小红书采集招聘信息，每日推送到 Telegram / Discord 等平台。基于 [OpenClaw](https://openclaw.ai) AI 消息网关 + [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) 实现全自动运行。
 
 ## 效果展示
 
@@ -54,7 +54,8 @@ graph TD
 
 - **全自动采集**：每日 3 次从小红书搜索招聘帖，按时段轮换关键词
 - **智能分类**：自动区分招聘帖 / 面经 / 不相关内容，减少噪声
-- **日报推送**：每早 9:00 将新增招聘信息格式化推送到 Telegram
+- **日报推送**：每早 9:00 将新增招聘信息格式化推送到 Telegram / Discord 等平台
+- **自然语言查询**：通过聊天指令查询、统计、筛选所有已采集的招聘信息，支持按企业/日期/关键词排序过滤
 - **两阶段提交**：推送失败时自动回滚，不丢失未推送数据
 - **低 Context 消耗**：Python 脚本预处理数据，LLM 只做格式化，单次运行仅 ~12k tokens
 
@@ -65,7 +66,8 @@ graph TD
 | [OpenClaw](https://openclaw.ai) | AI 消息网关，提供 Cron、Agent、消息投递能力（支持 Telegram / Discord / WhatsApp 等） |
 | [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) | 小红书 MCP 服务端（Go + go-rod） |
 | [MCPorter](https://github.com/steipete/mcporter) | MCP 协议桥接 CLI，Agent 通过它调用 xiaohongshu-mcp |
-| Python 3.8+ | 脚本运行环境 |
+| [uv](https://docs.astral.sh/uv/) | Python 包管理器，管理脚本依赖和虚拟环境 |
+| Python 3.10+ | 脚本运行环境（通过 uv 自动管理） |
 
 ### xiaohongshu-mcp 配置说明
 
@@ -82,11 +84,13 @@ xhs-job-radar/
 ├── README.md              # 本文档
 ├── LICENSE                # MIT License
 ├── SKILL.md               # OpenClaw Skill 描述文件
+├── pyproject.toml         # uv 项目配置
 ├── scripts/
 │   ├── collect-search.py  # 搜索小红书 + 过滤已采集
 │   ├── collect-write.py   # 写入采集结果到 data.md
 │   ├── daily-push-prepare.py  # 准备日报数据 + 写入 pending
-│   └── daily-push-verify.py   # 验证投递状态 + commit/rollback
+│   ├── daily-push-verify.py   # 验证投递状态 + commit/rollback
+│   └── query-jobs.py      # 查询统计已采集的招聘信息
 ├── prompts/
 │   ├── collect.md         # 采集任务的 Agent Prompt
 │   ├── daily-push.md      # 日报推送任务的 Agent Prompt
@@ -107,7 +111,8 @@ xhs-job-radar/
    - xiaohongshu-mcp：运行 `mcporter call 'xiaohongshu-mcp.search_feeds(keyword: "测试")'` 确认可用。
      如未安装，参考 https://github.com/xpzouying/xiaohongshu-mcp 部署 MCP 服务，
      并通过 MCPorter 注册：`mcporter add xiaohongshu-mcp --url http://127.0.0.1:18060`。
-   - Python 3.8+：运行 `python3 --version` 确认。
+   - Python 3.10+：运行 `python3 --version` 确认。
+   - uv：运行 `uv --version` 确认。如未安装，运行 `curl -LsSf https://astral.sh/uv/install.sh | sh`。
    - 消息频道：运行 `openclaw channels status` 确认至少有一个频道已连接。
      支持的频道：Telegram、Discord、WhatsApp 等 OpenClaw 支持的所有平台。
    如果以上依赖都已就绪，继续下一步。
@@ -120,11 +125,13 @@ xhs-job-radar/
 2. 克隆仓库：
    git clone https://github.com/hjnnjh/xhs-job-radar.git /tmp/xhs-job-radar
 
-3. 复制脚本到 OpenClaw Skills 目录：
+3. 复制脚本到 OpenClaw Skills 目录并初始化 uv：
    mkdir -p ~/.openclaw/skills/xhs-job-helper
    cp /tmp/xhs-job-radar/scripts/*.py ~/.openclaw/skills/xhs-job-helper/
    cp /tmp/xhs-job-radar/SKILL.md ~/.openclaw/skills/xhs-job-helper/
+   cp /tmp/xhs-job-radar/pyproject.toml ~/.openclaw/skills/xhs-job-helper/
    chmod +x ~/.openclaw/skills/xhs-job-helper/*.py
+   cd ~/.openclaw/skills/xhs-job-helper && uv sync
 
 4. 初始化工作目录：
    mkdir -p ~/.openclaw/workspace/xhs-jobs
@@ -140,7 +147,7 @@ xhs-job-radar/
 6. 记录 xhs-job-daily-push 的 Job ID，然后修改 ~/.openclaw/skills/xhs-job-helper/daily-push-verify.py 中的 PUSH_JOB_ID 为该 ID。
 
 7. 验证安装：
-   python3 ~/.openclaw/skills/xhs-job-helper/collect-search.py
+   cd ~/.openclaw/skills/xhs-job-helper && uv run python collect-search.py
    确认输出 JSON 格式的搜索结果。
 
 8. 清理：rm -rf /tmp/xhs-job-radar
@@ -158,12 +165,16 @@ xhs-job-radar/
 # 创建 Skill 目录
 mkdir -p ~/.openclaw/skills/xhs-job-helper
 
-# 复制脚本
+# 复制脚本和配置
 cp scripts/*.py ~/.openclaw/skills/xhs-job-helper/
 cp SKILL.md ~/.openclaw/skills/xhs-job-helper/
+cp pyproject.toml ~/.openclaw/skills/xhs-job-helper/
 
 # 设置执行权限
 chmod +x ~/.openclaw/skills/xhs-job-helper/*.py
+
+# 初始化 uv 虚拟环境
+cd ~/.openclaw/skills/xhs-job-helper && uv sync
 ```
 
 ### 2. 初始化工作目录
@@ -214,6 +225,29 @@ mcporter call 'xiaohongshu-mcp.search_feeds(keyword: "测试")'
 | prompt | 见 `prompts/push-verify.md` |
 
 > **注意**：`daily-push-verify.py` 中硬编码了 daily-push 任务的 Job ID，部署后需修改脚本中的 `PUSH_JOB_ID` 常量为你实际的 Job ID。
+
+## 自然语言查询
+
+通过聊天指令即可查询和统计所有已采集的招聘信息，AI Agent 会自动调用 `query-jobs.py` 脚本。
+
+**使用示例**（在 Telegram / Discord 等平台直接对 Agent 说）：
+
+- "帮我整理一下当前收集的所有招聘信息，按照企业以及收集时间先后进行排序"
+- "看看字节跳动最近有哪些岗位"
+- "统计一下这个月各家企业的招聘信息数量"
+- "最近三天有什么新的推荐算法实习岗位"
+
+`query-jobs.py` 支持的参数：
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `--sort` | 排序方式 | `company-date`（默认）、`date`、`date-asc`、`company` |
+| `--company` | 按企业名模糊过滤 | `--company 字节` |
+| `--keyword` | 按关键词/岗位过滤 | `--keyword 推荐算法` |
+| `--date-from` | 起始日期 | `--date-from 2026-03-20` |
+| `--date-to` | 截止日期 | `--date-to 2026-03-30` |
+| `--format` | 输出格式 | `text`（默认）、`json` |
+| `--stats` | 仅统计摘要 | 输出企业分布等统计数据 |
 
 ## 数据流详解
 
@@ -340,7 +374,7 @@ PUSH_JOB_ID = "你的-daily-push-job-id"
 推送失败时，`daily-push-verify.py` 会自动丢弃 pending IDs，下次定时推送会自动包含这些条目。如果需要立即重试，手动运行：
 
 ```bash
-python3 ~/.openclaw/skills/xhs-job-helper/daily-push-prepare.py
+cd ~/.openclaw/skills/xhs-job-helper && uv run python daily-push-prepare.py
 ```
 
 确认有数据后，通过 OpenClaw 触发 daily-push 任务即可。
